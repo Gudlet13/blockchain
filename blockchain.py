@@ -1,12 +1,33 @@
 # coding: UTF-8
 
+from time import time
+
 class BlockChain(object):
 
     def __init__(self):
         self.chain = []
         self.current_transactions = []
 
-    def new_block(self):
+    def new_block(self, proof, previous_hash=None):
+        """
+        ブロックチェーンに新しいブロックを作る
+        :param proof:  プルーフ・オブ・ワークアルゴリズムから得られるグループ
+        :param previous_hash:  前のブロックのハッシュ
+        :return: 新しいブロック
+        """
+
+        block = {
+            'index': len(self.chain) + 1,
+            'timestamp': time(),
+            'transactions': self.current_transactions,
+            'proof': proof,
+            'previous_hush': previous_hash or self.hash(chain[-1]),
+        }
+
+        self.current_transactions = []
+        self.chain.append(block)
+        return block
+
         # 新しいブロックを作り、チェーンに加える
         pass
 
