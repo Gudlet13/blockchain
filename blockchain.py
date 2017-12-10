@@ -5,7 +5,7 @@ import json
 
 from time import time
 from uuid import uuid4
-from flask import Flask
+from flask import Flask, jsonify, request
 from textwrap import dedent
 
 class Blockchain(object):
@@ -113,7 +113,16 @@ def mine():
 # メソッドはPOSTで/transactions/newエンドポイントを作る。メソッドはPOSTなのでデータを送信する
 @app.route('/transactions/new', methods=['POST'])
 def new_transactions():
-    return '新しいトランザクションを追加します'
+    values = request.get_json()
+    # Postされたデータに必要なデータがあるか確認
+    required = ['sender','recipient','amount']
+    if not all(k in values for k in required):
+        return 'Missing values', 400
+
+    # 新しいトランザクションを作成
+    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+    response = {'message': f'トランザクションはブロック {index} に追加されました'}
+    return jsonify(response), 201
 
 # メソッドはGETで、フルのブロックチェーンをリターンする/chainエンドポイントを作る
 @app.route('/chain', methods=['GET'])
