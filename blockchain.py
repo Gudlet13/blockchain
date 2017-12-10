@@ -2,7 +2,9 @@
 
 import hashlib
 import json
+
 from time import time
+from uuid import uuid4
 
 class Blockchain(object):
 
@@ -64,3 +66,29 @@ class Blockchain(object):
     @property
     def last_block(self):
         return self.chain[-1]
+
+
+    def proof_of_work(self, last_proof):
+        """
+        シンプルなプルーフ・オブ・ワークのアルゴリズム:
+            - hash(pp')の最初の4つが0となるようなp'を探す
+            - p は前のプルーフ、p'は新しいプルーフ
+        :param last_proof:
+        :return:
+        """
+        proof = 0
+        while self.valid_proof(last_proof, proof) is False:
+            proof += 1
+        return proof
+
+    @staticmethod
+    def valid_proof(last_proof, proof):
+        """
+        プルーフが正しいかを確認する: hash(last_proof, proof)の最初の4つが0となっているのか？
+        :param last_proof: 前のプルーフ
+        :param proof:  現在のプルーフ
+        :return: 正しければ、true, そうでなければfalse
+        """
+        guess = f'{last_proof}{proof}'.encode()
+        guess_hash = hashlib.sha256(guess).hexdigest
+        return guess_hash[:4] == "0000"
