@@ -1,5 +1,7 @@
 # coding: UTF-8
 
+import hashlib
+import json
 from time import time
 
 class Blockchain(object):
@@ -50,8 +52,14 @@ class Blockchain(object):
 
     @staticmethod
     def hash(block):
-        # ブロックをハッシュ化させる
-        pass
+        """
+        ブロックをSHA-256でハッシュ化させる
+        :param block: ブロック
+        :return:
+        """
+        # 必ずディクショナリ（辞書型のオブジェクト）がソートされている必要がある。そうでないと、一貫性のないハッシュとなってしまう
+        block_string = json.dumps(block, sort_keys=True).encode()
+        return hashlib.sha256(block_string).hexdigest()
 
     @property
     def last_block(self):
