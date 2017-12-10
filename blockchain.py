@@ -2,17 +2,31 @@
 
 import hashlib
 import json
-
-from time import time
-from uuid import uuid4
-from flask import Flask, jsonify, request
 from textwrap import dedent
+from time import time
+from urllib.parse import urlparse
+from uuid import uuid4
+import requests
+from flask import Flask, jsonify, request
 
 class Blockchain(object):
 
     def __init__(self):
         self.chain = []
         self.current_transactions = []
+        self.nodes = set()
+
+        self.new_block(previous_hash=1, proof=100)
+
+    def register_node(self, address):
+        """
+        ノードリストに新しいノードを加える
+        :param address: <str> ノードのアドレス 例: 'http://192.168.0.5:5000'
+        :return: None
+        """
+
+        parsed_url = parse(address)
+        self.nodes.add(parsed_url.netloc)
 
     def new_block(self, proof, previous_hash=None):
         """
@@ -27,7 +41,7 @@ class Blockchain(object):
             'timestamp': time(),
             'transactions': self.current_transactions,
             'proof': proof,
-            'previous_hush': previous_hash or self.hash(chain[-1]),
+            'previous_hash': previous_hash or self.hash(self.chain[-1]),
         }
 
         self.current_transactions = []
@@ -92,7 +106,7 @@ class Blockchain(object):
         :return: 正しければ、true, そうでなければfalse
         """
         guess = f'{last_proof}{proof}'.encode()
-        guess_hash = hashlib.sha256(guess).hexdigest
+        guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:4] == "0000"
 
 
@@ -106,21 +120,49 @@ node_identifire = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 # メソッドはGETで/mineエンドポイントを作る
+# 1. プルーフ・オブ・ワークを計算する
+# 2. 1コインを採掘者に与えるトランザクションを加えることで、採掘者（この場合は我々）に利益を与える
+# 3. チェーンに新しいブロックを加えることで、新しいブロックを採掘する
 @app.route('/mine', methods=['GET'])
 def mine():
-    return '新しいブロックを採掘します'
+    # 次のプルーフを見つけるためプルーフ・オブ・ワークアルゴリズムを使用する
+    last_block = blockchain.last_block
+    last_proof = last_block['proof']
+    proof = blockchain.proof_of_work(last_proof)
+
+    # プルーフを見つけたことに対する報酬を得る
+    # 送信者は、採掘者が新しいコインを採掘したことを表すために"0"とする
+    blockchain.new_transaction(
+        sender="0",
+        recipient=node_identifire,
+        amount=1,
+    )
+
+    # チェーンに新しいブロックを加えることで、新しいブロックを採掘する
+    block = blockchain.new_block(proof)
+
+    response = {
+        'message': '新しいブロックを採掘しました',
+        'index': block['index'],
+        'transactions': block['transactions'],
+        'proof': block['proof'],
+        'previous_hash': block['previous_hash'],
+    }
+    return jsonify(response), 200
 
 # メソッドはPOSTで/transactions/newエンドポイントを作る。メソッドはPOSTなのでデータを送信する
 @app.route('/transactions/new', methods=['POST'])
-def new_transactions():
+def new_transaction():
     values = request.get_json()
-    # Postされたデータに必要なデータがあるか確認
-    required = ['sender','recipient','amount']
+
+    # POSTされたデータに必要なデータがあるかを確認
+    required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
 
-    # 新しいトランザクションを作成
+    # 新しいトランザクションを作る
     index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+
     response = {'message': f'トランザクションはブロック {index} に追加されました'}
     return jsonify(response), 201
 
