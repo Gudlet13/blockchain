@@ -2,7 +2,7 @@
 
 from time import time
 
-class BlockChain(object):
+class Blockchain(object):
 
     def __init__(self):
         self.chain = []
@@ -55,5 +55,4 @@ class BlockChain(object):
 
     @property
     def last_block(self):
-        # チェーンの最後のブロックをリターンする
-        pass
+        return self.chain[-1]
